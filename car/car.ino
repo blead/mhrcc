@@ -1,4 +1,6 @@
-#include <user_interface.h>
+extern "C" {
+  #include <user_interface.h>
+}
 
 #define DISABLE 0
 #define ENABLE  1
@@ -52,13 +54,17 @@ struct DataPacket {
 };
 
 // MAC Addresses
-uint8_t self[6] = {0x5A,0xDB,0x5A,0xDB,0x5A,0xDB};
-uint8_t ap[6] = {0xFC,0x5B,0x39,0xE0,0xFC,0x9F};
+uint8_t self[6] = {0x82,0x0C,0x98,0x7B,0xEB,0x38};
+// set ap to BSSID
+uint8_t ap[6] = {0x8A,0x95,0xFE,0x27,0x25,0xD4};
 
-uint8_t destination[6] = {0xF0,0x18,0x98,0x1C,0x47,0x72};
-uint8_t real_peaw[6] = {0xF0,0x18,0x98,0x1C,0x47,0x72};
-uint8_t peaw[6] = {0xa0,0x88,0xb4,0xb7,0x63,0xd8};
+uint8_t wifi_channel = 1;
 
+uint8_t self_id = 0x61;
+uint8_t self_mac[6] = {0xB1,0xEA,0xDB,0x1E,0xAD,self_id};
+
+uint8_t next_hop_id = 0x62;
+uint8_t next_hop[6] = {0xB1,0xEA,0xDB,0x1E,0xAD,next_hop_id};
 uint8_t broadcast[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 
 uint8_t packet_buffer[64];
@@ -148,19 +154,30 @@ static void showMetadata(struct SnifferPacket *snifferPacket) {
 static void ICACHE_FLASH_ATTR sniffer_callback(uint8_t *buffer, uint16_t length) {
   struct SnifferPacket *snifferPacket = (struct SnifferPacket*) buffer;
 
+  uint8_t dir = snifferPacket->data[10];
+  uint8_t target = snifferPacket->data[11];
+  
   bool eq = true;
   for(int i=0; i<6; i++) {
     eq &= (snifferPacket->data[16+i] == ap[i]);
   }
+
+  for(int i=0; i<5; i++) {
+    eq &= (snifferPacket->data[4+i] == self_mac[i]);
+  }
+  eq &= (snifferPacket->data[4+5] == self_id || snifferPacket->data[4+5] == 0xFF);
   
-  if (length == 60 && eq) {
+  if (eq) {
 //    Serial.printf("raw length: %d\n", length);
 //    Serial.print("raw data: ");
 //    printDataSpan(0, length, buffer);
-    showMetadata(snifferPacket);
-    Serial.println("driving with");
-    Serial.printf("%c", snifferPacket->data[24]);
-    drive(snifferPacket->data[24]);
+//    showMetadata(snifferPacket);
+    Serial.printf("driving [ %d ] with [ %c ] \n", target, dir);
+    if (target == self_id) {
+      drive(dir);
+    } else {
+      forward_pkt(target, dir);
+    }
   }
 }
 
@@ -178,7 +195,7 @@ void setup() {
   Serial.begin(115200);
   delay(10);
   wifi_set_opmode(STATION_MODE);
-  wifi_set_channel(6);
+  wifi_set_channel(wifi_channel);
   wifi_promiscuous_enable(DISABLE);
   delay(10);
   wifi_set_promiscuous_rx_cb(sniffer_callback);
@@ -190,8 +207,14 @@ void loop() {
   delay(100);
   resetOutput();
   if(emerSignal == 1)emer();
-  uint8_t data = 0x42;
+  uint8_t data = 0x5A;
   uint16_t size = create_packet(packet_buffer, broadcast, self, ap, 0x10, data);
+  wifi_send_pkt_freedom(packet_buffer, size, 0);
+}
+
+void forward_pkt(uint8_t target, uint8_t dir) {
+  uint8_t to_addr[6] = {dir,target,0xDE, 0xAD, 0xBE, 0xEF};
+  uint16_t size = create_packet(packet_buffer, next_hop, to_addr, ap, 0x10, 0xBA);
   wifi_send_pkt_freedom(packet_buffer, size, 0);
 }
 
