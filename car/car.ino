@@ -260,7 +260,7 @@ static void ICACHE_FLASH_ATTR sniffer_callback(uint8_t *buffer, uint16_t length)
 //    printDataSpan(0, length, buffer);
 //    showMetadata(snifferPacket);
     Serial.printf("driving [ %d ] with [ %c ] \n", target, dir);
-    if (target == self_id) {
+    if (target == self_id || target == 0xFF) {
       drive(dir);
     } else {
       forward_pkt(target, dir);
