@@ -2,24 +2,26 @@ import pygame
 import scapy.all as scp
 import scapy
 
-INTF = 'Qualcomm Atheros AR956x Wireless Network Adapter'
+INTF = 'wlo1'
 MHRCC_MAC = 'b1:ea:db:1e:ad:'
 
 # Define some colors
 BLACK    = (   0,   0,   0)
 WHITE    = ( 255, 255, 255)
-target_car = 'a'
-next_hop_car = 'a'
+target_car = '61'
+next_hop_car = '61'
 # for control car
 def send_to_car(src_mac, next_hop='61'):
-    packet = scapy.layers.l2.Ether(dst=MHRCC_MAC + next_hop, src=src_mac)/scapy.all.Raw('blead')
+    dst_mac = MHRCC_MAC + next_hop
+    print(dst_mac)
+    packet = scapy.layers.l2.Ether(dst=dst_mac, src=src_mac)/scapy.all.Raw('blead')
     scp.sendp(packet, iface=INTF)
 
 def to_hex(char):
     return '{:x}'.format(ord(char))
 
 def send_control(direction, target, next_hop='61'):
-    src_mac = '{}:{}:5a:db:5a:db'.format(to_hex(direction), to_hex(target))
+    src_mac = '{}:{}:5a:db:5a:db'.format(to_hex(direction), target)
     print(src_mac)
     send_to_car(src_mac, next_hop=next_hop)
 # This is a simple class that will help us print to the screen
@@ -29,7 +31,7 @@ def send_control(direction, target, next_hop='61'):
 class TextPrint:
     def __init__(self):
         self.reset()
-        self.font = pygame.font.Font(None, 20)
+        self.font = pygame.font.Font(None, 200)
 
     def print(self, screen, textString):
         textBitmap = self.font.render(textString, True, BLACK)
@@ -51,7 +53,7 @@ class TextPrint:
 pygame.init()
  
 # Set the width and height of the screen [width,height]
-size = [500, 700]
+size = [1700, 300]
 screen = pygame.display.set_mode(size)
 
 pygame.display.set_caption("My Game")
@@ -91,83 +93,89 @@ while done==False:
     # Get count of joysticks
     joystick_count = pygame.joystick.get_count()
 
-    textPrint.print(screen, "Number of joysticks: {}".format(joystick_count) )
-    textPrint.indent()
+    # textPrint.print(screen, "Number of joysticks: {}".format(joystick_count) )
+    # textPrint.indent()
     
     # For each joystick:
-    for i in range(joystick_count):
-        joystick = pygame.joystick.Joystick(i)
-        joystick.init()
+    # for i in range(joystick_count):
+    #     joystick = pygame.joystick.Joystick(i)
+    #     joystick.init()
     
-        textPrint.print(screen, "Joystick {}".format(i) )
-        textPrint.indent()
+    #     textPrint.print(screen, "Joystick {}".format(i) )
+    #     textPrint.indent()
     
-        # Get the name from the OS for the controller/joystick
-        name = joystick.get_name()
-        textPrint.print(screen, "Joystick name: {}".format(name) )
+    #     # Get the name from the OS for the controller/joystick
+    #     name = joystick.get_name()
+    #     textPrint.print(screen, "Joystick name: {}".format(name) )
         
-        # Usually axis run in pairs, up/down for one, and left/right for
-        # the other.
-        axes = joystick.get_numaxes()
-        textPrint.print(screen, "Number of axes: {}".format(axes) )
-        textPrint.indent()
+    #     # Usually axis run in pairs, up/down for one, and left/right for
+    #     # the other.
+    #     axes = joystick.get_numaxes()
+    #     textPrint.print(screen, "Number of axes: {}".format(axes) )
+    #     textPrint.indent()
         
-        for i in range( axes ):
-            axis = joystick.get_axis( i )
-            textPrint.print(screen, "Axis {} value: {:>6.3f}".format(i, axis) )
-        textPrint.unindent()
+        # for i in range( axes ):
+        #     axis = joystick.get_axis( i )
+        #     textPrint.print(screen, "Axis {} value: {:>6.3f}".format(i, axis) )
+        # textPrint.unindent()
             
-        buttons = joystick.get_numbuttons()
-        textPrint.print(screen, "Number of buttons: {}".format(buttons) )
-        textPrint.indent()
+        # buttons = joystick.get_numbuttons()
+        # textPrint.print(screen, "Number of buttons: {}".format(buttons) )
+        # textPrint.indent()
 
-        for i in range( buttons ):
-            button = joystick.get_button( i )
-            textPrint.print(screen, "Button {:>2} value: {}".format(i,button) )
-        textPrint.unindent()
+        # for i in range( buttons ):
+        #     button = joystick.get_button( i )
+        #     textPrint.print(screen, "Button {:>2} value: {}".format(i,button) )
+        # textPrint.unindent()
             
         # Hat switch. All or nothing for direction, not like joysticks.
         # Value comes back in an array.
-        hats = joystick.get_numhats()
-        textPrint.print(screen, "Number of hats: {}".format(hats) )
-        textPrint.indent()
+        # hats = joystick.get_numhats()
+        # textPrint.print(screen, "Number of hats: {}".format(hats) )
+        # textPrint.indent()
 
-        for i in range( hats ):
-            hat = joystick.get_hat( i )
-            textPrint.print(screen, "Hat {} value: {}".format(i, str(hat)) )
-        textPrint.unindent()
+        # for i in range( hats ):
+        #     hat = joystick.get_hat( i )
+        #     textPrint.print(screen, "Hat {} value: {}".format(i, str(hat)) )
+        # textPrint.unindent()
         
-        textPrint.unindent()
+        # textPrint.unindent()
 
-        textPrint.print(screen, "target car {} next hop {}".format(target_car,next_hop_car) )
+    textPrint.print(screen, "target car {} next hop {}".format(target_car,next_hop_car) )
+    joystick = pygame.joystick.Joystick(0)
+    joystick.init()
+    hat = joystick.get_hat(0)
 
-        if(pygame.joystick.Joystick(0).get_button(0)):
-            print("LEFT")
-            send_control('a',target_car,next_hop=next_hop_car)
-        if(pygame.joystick.Joystick(0).get_button(1)):
-            print("BACKWARD")
-            send_control('s',target_car,next_hop=next_hop_car)
-        if(pygame.joystick.Joystick(0).get_button(2)):
-            print("RIGHT")
-            send_control('d',target_car,next_hop=next_hop_car)
-        if(pygame.joystick.Joystick(0).get_button(3)):
-            print("FORWARD")
-            send_control('w',target_car,next_hop=next_hop_car)
-        if(pygame.joystick.Joystick(0).get_button(4)):
-            print("LB")
-            target_car='a'
-        if(pygame.joystick.Joystick(0).get_button(5)):
-            print("RB")
-            target_car='b'
-        if(pygame.joystick.Joystick(0).get_button(6)):
-            print("LT")
-            next_hop_car='a'
-        if(pygame.joystick.Joystick(0).get_button(7)):
-            print("RT")
-            next_hop_car='b'
-        if(pygame.joystick.Joystick(0).get_button(9)):
-            print("EMER")
-            send_control('e',target_car,next_hop=next_hop_car)
+    if joystick.get_button(0) or hat == (-1, 0):
+        print("LEFT")
+        send_control('a',target_car,next_hop=next_hop_car)
+    if joystick.get_button(1) or hat == (0, -1):
+        print("BACKWARD")
+        send_control('s',target_car,next_hop=next_hop_car)
+    if joystick.get_button(2) or hat == (1, 0):
+        print("RIGHT")
+        send_control('d',target_car,next_hop=next_hop_car)
+    if joystick.get_button(3) or hat == (0, 1):
+        print("FORWARD")
+        send_control('w',target_car,next_hop=next_hop_car)
+    if joystick.get_button(4):
+        print("LB")
+        target_car='61'
+    if joystick.get_button(5):
+        print("RB")
+        target_car='62'
+    if joystick.get_button(6):
+        print("LT")
+        next_hop_car='61'
+    if joystick.get_button(7):
+        print("RT")
+        next_hop_car='62'
+    if joystick.get_button(9):
+        print("EMER")
+        send_control('e',target_car,next_hop=next_hop_car)
+    if joystick.get_button(8):
+        target_car = 'ff'
+        next_hop_car = 'ff'
             
 
     
@@ -177,7 +185,7 @@ while done==False:
     pygame.display.flip()
 
     # Limit to 20 frames per second
-    clock.tick(20)
+    # clock.tick(60)
     
 # Close the window and quit.
 # If you forget this line, the program will 'hang'
