@@ -2,7 +2,7 @@
 
 ## Controller Setup
 
-1. Create a wireless ad-hoc network **with no security**. See (https://help.ubuntu.com/community/WifiDocs/Adhoc)[https://help.ubuntu.com/community/WifiDocs/Adhoc] for an example.
+1. Create a wireless ad-hoc network **with no security**. See [https://help.ubuntu.com/community/WifiDocs/Adhoc](https://help.ubuntu.com/community/WifiDocs/Adhoc) for an example.
 
 2. Install dependencies.
 
