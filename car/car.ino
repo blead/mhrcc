@@ -11,6 +11,25 @@ extern "C" {
 int state = 0;
 int emerSignal = 0;
 
+/* INITIAL CONFIGURATION 
+ *  SET wifi_channel
+ *  SET self_id (e.g. 0x61 for A, 0x62 for B)
+ *  SET next_hop_id
+ *  SET ap to network BSSID
+ */
+
+uint8_t wifi_channel = 1;
+uint8_t self_id = 0x61;
+uint8_t next_hop_id = 0x62;
+
+uint8_t ap[6] = {0xDE,0xB1,0xB5,0x5E,0xF1,0xF2};
+
+uint8_t self_mac[6] = {0xB1,0xEA,0xDB,0x1E,0xAD,self_id};
+uint8_t next_hop[6] = {0xB1,0xEA,0xDB,0x1E,0xAD,next_hop_id};
+uint8_t broadcast[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+
+uint8_t packet_buffer[64];
+
 struct RxControl {
   signed rssi:8; // signal intensity of packet
   unsigned rate:4;
@@ -52,22 +71,6 @@ struct DataPacket {
   uint8_t *seq; // 2
   uint8_t *data; // 4
 };
-
-// MAC Addresses
-uint8_t self[6] = {0x82,0x0C,0x98,0x7B,0xEB,0x38};
-// set ap to BSSID
-uint8_t ap[6] = {0x8A,0x95,0xFE,0x27,0x25,0xD4};
-
-uint8_t wifi_channel = 1;
-
-uint8_t self_id = 0x61;
-uint8_t self_mac[6] = {0xB1,0xEA,0xDB,0x1E,0xAD,self_id};
-
-uint8_t next_hop_id = 0x62;
-uint8_t next_hop[6] = {0xB1,0xEA,0xDB,0x1E,0xAD,next_hop_id};
-uint8_t broadcast[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
-
-uint8_t packet_buffer[64];
 
 static void printDataSpan(uint16_t start, uint16_t size, uint8_t* data) {
   for(uint16_t i = start; i < MAX_DATA_LENGTH && i < start+size; i++) {
@@ -148,6 +151,90 @@ static void showMetadata(struct SnifferPacket *snifferPacket) {
   printDataSpan(0, 4, dataPacket->data);
 }
 
+void forward(){
+  analogWrite(D1, 768);
+  analogWrite(D2, 1023);
+  analogWrite(D3, 768);
+  analogWrite(D4, 1023);
+  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(D5, HIGH);
+}
+void left(){
+  analogWrite(D1, 1023);
+  analogWrite(D2, 768);
+  analogWrite(D3, 768);
+  analogWrite(D4, 1023);
+  digitalWrite(LED_BUILTIN, LOW);
+}
+void right(){
+  analogWrite(D1, 768);
+  analogWrite(D2, 1023);
+  analogWrite(D3, 1023);
+  analogWrite(D4, 768);
+  digitalWrite(LED_BUILTIN, LOW);
+}
+void backward(){
+  analogWrite(D1, 1023);
+  analogWrite(D2, 768);
+  analogWrite(D3, 1023);
+  analogWrite(D4, 762);
+  digitalWrite(LED_BUILTIN, LOW);
+}
+void emer(){
+  if (state == 0) {
+    digitalWrite(D5, HIGH);
+    digitalWrite(D6, LOW);
+    state = 1;
+  } else {
+    digitalWrite(D5, LOW);
+    digitalWrite(D6, HIGH);
+    state = 0;
+  }
+}
+void resetOutput(){
+  analogWrite(D1, 1023);
+  analogWrite(D2, 1023);
+  analogWrite(D3, 1023);
+  analogWrite(D4, 1023);
+  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(D5, LOW);
+  digitalWrite(D6, LOW);
+}
+
+void forward_pkt(uint8_t target, uint8_t dir) {
+  uint8_t to_addr[6] = {dir, target, 0xDE, 0xAD, 0xBE, 0xEF};
+  uint16_t size = create_packet(packet_buffer, next_hop, to_addr, ap, 0x10, 0xBA);
+  wifi_send_pkt_freedom(packet_buffer, size, 0);
+}
+
+void drive(char c) {
+//  resetOutput();
+    if (c == 'w') {
+      Serial.println("GO"); 
+      forward();     
+     }  
+    else if(c == 'a'){     
+      Serial.println("LEFT"); 
+      left(); 
+    }
+    else if(c == 'd'){     
+      Serial.println("RIGHT"); 
+      right(); 
+    }
+    else if(c == 's'){     
+      Serial.println("BACK");  
+      backward();
+    }
+    else if(c == 'e'){     
+      Serial.println("EMER");  
+      if (emerSignal == 0) {
+        emerSignal = 1;
+      } else {
+        emerSignal = 0;
+      }
+    }
+}
+
 /**
  * Callback for promiscuous mode
  */
@@ -183,14 +270,14 @@ static void ICACHE_FLASH_ATTR sniffer_callback(uint8_t *buffer, uint16_t length)
 
 void setup() {
   // set the WiFi chip to "promiscuous" mode aka monitor mode
-  pinMode(D1,OUTPUT); //LEFT 
-  pinMode(D2,OUTPUT); //LEFT 
+  pinMode(D1, OUTPUT); //LEFT 
+  pinMode(D2, OUTPUT); //LEFT 
   //+-==front -+==back
-  pinMode(D3,OUTPUT); //RIGHT
-  pinMode(D4,OUTPUT); //RIGHT
+  pinMode(D3, OUTPUT); //RIGHT
+  pinMode(D4, OUTPUT); //RIGHT
   //+-==front -+==back
-  pinMode(D5,OUTPUT); //led
-  pinMode(D6,OUTPUT); //led
+  pinMode(D5, OUTPUT); //led
+  pinMode(D6, OUTPUT); //led
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(115200);
   delay(10);
@@ -204,96 +291,12 @@ void setup() {
 }
 
 void loop() {
-  delay(100);
+  delay(200);
   resetOutput();
-  if(emerSignal == 1)emer();
-  uint8_t data = 0x5A;
-  uint16_t size = create_packet(packet_buffer, broadcast, self, ap, 0x10, data);
-  wifi_send_pkt_freedom(packet_buffer, size, 0);
-}
-
-void forward_pkt(uint8_t target, uint8_t dir) {
-  uint8_t to_addr[6] = {dir,target,0xDE, 0xAD, 0xBE, 0xEF};
-  uint16_t size = create_packet(packet_buffer, next_hop, to_addr, ap, 0x10, 0xBA);
-  wifi_send_pkt_freedom(packet_buffer, size, 0);
-}
-
-void drive(char c) {
-//  resetOutput();
-    if (c == 'w') {
-      //do stuff
-      Serial.println("GO"); 
-      forward();     
-     }  
-    else if(c == 'a'){     
-      Serial.println("LEFT"); 
-      left(); 
-    }
-    else if(c == 'd'){     
-      Serial.println("RIGHT"); 
-      right(); 
-    }
-    else if(c == 's'){     
-      Serial.println("BACK");  
-      backward();
-    }
-    else if(c == 'e'){     
-      Serial.println("BACK");  
-      if(emerSignal == 0) emerSignal = 1;
-      else emerSignal = 0;
-    }
-//  if(emerSignal == 1)emer();
-}
-
-
-void forward(){
-  analogWrite(D1,768);
-  analogWrite(D2,1023);
-  analogWrite(D3,768);
-  analogWrite(D4,1023);
-  digitalWrite(LED_BUILTIN,LOW);
-  digitalWrite(D5,HIGH);
-  Serial.print("WTF");
-}
-void left(){
-  analogWrite(D1,1023);
-  analogWrite(D2,768);
-  analogWrite(D3,768);
-  analogWrite(D4,1023);
-  digitalWrite(LED_BUILTIN,LOW);
-}
-void right(){
-  analogWrite(D1,768);
-  analogWrite(D2,1023);
-  analogWrite(D3,1023);
-  analogWrite(D4,768);
-  digitalWrite(LED_BUILTIN,LOW);
-}
-void backward(){
-  analogWrite(D1,1023);
-  analogWrite(D2,768);
-  analogWrite(D3,1023);
-  analogWrite(D4,762);
-  digitalWrite(LED_BUILTIN,LOW);
-}
-void emer(){
-  if(state==0){
-    digitalWrite(D5,HIGH);
-    digitalWrite(D6,LOW);
-    state=1;
+  if(emerSignal == 1) {
+    emer();
   }
-  else{
-    digitalWrite(D5,LOW);
-    digitalWrite(D6,HIGH);
-    state=0;
-  }  
-}
-void resetOutput(){
-  analogWrite(D1,1023);
-  analogWrite(D2,1023);
-  analogWrite(D3,1023);
-  analogWrite(D4,1023);
-  digitalWrite(LED_BUILTIN,HIGH);
-  digitalWrite(D5,LOW);
-  digitalWrite(D6,LOW);
+//  uint8_t data = 0x5A;
+//  uint16_t size = create_packet(packet_buffer, broadcast, self, ap, 0x10, data);
+//  wifi_send_pkt_freedom(packet_buffer, size, 0);
 }
