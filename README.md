@@ -1,5 +1,8 @@
 # MHRCC
 
+Multi-hop radio-controlled cars. Built using ESP-8266 (NodeMCU), with custom wireless ad-hoc communication protocol.
+[demo video](https://www.youtube.com/watch?v=qV8OEQQNxMI).
+
 ## Controller Setup
 
 1. Create a wireless ad-hoc network **with no security**. See [https://help.ubuntu.com/community/WifiDocs/Adhoc](https://help.ubuntu.com/community/WifiDocs/Adhoc) for an example.
